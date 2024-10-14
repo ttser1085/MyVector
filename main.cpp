@@ -3,7 +3,7 @@
 #include <iostream>
 
 int main() {
-    MyVector vec;
+    MyVector<int> vec;
     // TODO: add tests
 
     return 0;
