@@ -14,12 +14,21 @@ public:
     using iterator = MyRAIterator<T>;
     using const_iterator = MyRAIterator<const T>;
 
-    MyVector() = default;
+    MyVector() : size_(0), capacity_(DEFAULT_CAPACITY_), allocator_() {
+        data_ = allocator_.allocate(capacity_);
+    }
+
+    MyVector(size_t count);
+
+    bool empty() const;
+    size_t size() const;
+    size_t capacity() const;
 
 private:
-    ptr data_ = nullptr;
-    size_t size_ = 0;
-    size_t capacity_ = DEFAULT_CAPACITY_;
+    ptr data_;
+    size_t size_;
+    size_t capacity_;
+    Allocator allocator_;
 
     static const size_t DEFAULT_CAPACITY_ = 32;
 };

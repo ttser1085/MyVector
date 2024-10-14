@@ -12,30 +12,32 @@ public:
     using pointer = T*;
     using reference = T&;
 
-    MyRAIterator();
-    MyRAIterator(pointer p);
+    MyRAIterator() = default;
+    MyRAIterator(pointer p) : ptr(p) {}
 
-    reference operator*() const;
-    pointer operator->() const;
-    reference operator[](difference_type n) const;
+    reference operator*() const { return *ptr; }
+    pointer operator->() const { return ptr; }
+    reference operator[](difference_type n) const { return *(ptr + n); }
 
-    MyRAIterator& operator++();
-    MyRAIterator operator++(int);
-    MyRAIterator& operator--();
-    MyRAIterator operator--(int);
+    MyRAIterator& operator++() { ++ptr; return *this; }
+    MyRAIterator operator++(int) { MyRAIterator temp = *this; ++ptr; return temp; }
+    MyRAIterator& operator--() { --ptr; return *this; }
+    MyRAIterator operator--(int) { MyRAIterator temp = *this; --ptr; return temp; }
 
-    MyRAIterator& operator+=(difference_type n);
-    MyRAIterator& operator-=(difference_type n);
-    MyRAIterator operator+(difference_type n) const;
-    MyRAIterator operator-(difference_type n) const;
-    difference_type operator-(const MyRAIterator& other) const;
+    MyRAIterator& operator+=(difference_type n) { ptr += n; return *this; }
+    MyRAIterator& operator-=(difference_type n) { ptr -= n; return *this; }
 
-    bool operator==(const MyRAIterator& other) const;
-    bool operator!=(const MyRAIterator& other) const;
-    bool operator<(const MyRAIterator& other) const;
-    bool operator<=(const MyRAIterator& other) const;
-    bool operator>(const MyRAIterator& other) const;
-    bool operator>=(const MyRAIterator& other) const;
+    MyRAIterator operator+(difference_type n) const { return MyRAIterator(ptr + n); }
+    MyRAIterator operator-(difference_type n) const { return MyRAIterator(ptr - n); }
+
+    difference_type operator-(const MyRAIterator& other) const { return ptr - other.ptr; }
+
+    bool operator==(const MyRAIterator& other) const { return ptr == other.ptr; }
+    bool operator!=(const MyRAIterator& other) const { return ptr != other.ptr; }
+    bool operator<(const MyRAIterator& other) const { return ptr < other.ptr; }
+    bool operator<=(const MyRAIterator& other) const { return ptr <= other.ptr; }
+    bool operator>(const MyRAIterator& other) const { return ptr > other.ptr; }
+    bool operator>=(const MyRAIterator& other) const { return ptr >= other.ptr; }
 
 private:
     pointer ptr = nullptr;
