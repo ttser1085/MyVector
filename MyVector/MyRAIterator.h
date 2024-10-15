@@ -15,6 +15,12 @@ public:
     MyRAIterator() = default;
     MyRAIterator(pointer p) : ptr(p) {}
 
+    template <class Y>
+    friend class MyRAIterator;
+
+    template <class Y>
+    MyRAIterator(MyRAIterator<Y> other) : ptr(other.ptr) {}
+
     reference operator*() const { return *ptr; }
     pointer operator->() const { return ptr; }
     reference operator[](difference_type n) const { return *(ptr + n); }
