@@ -129,6 +129,8 @@ public:
                     allocator_.destroy(&data_[i]);
                 }
             }
+
+            size_ = other.size_;
         }
 
         return *this;
@@ -530,3 +532,55 @@ private:
         capacity_ = new_capacity;
     }
 };
+
+
+template<class T, class Alloc>
+bool operator==(const MyVector<T, Alloc>& lhs, const MyVector<T, Alloc>& rhs) {
+    if (lhs.size() != rhs.size()) {
+        return false;
+    }
+
+    for (size_t i = 0; i < lhs.size(); ++i) {
+        if (lhs[i] != rhs[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+template<class T, class Alloc>
+bool operator!=(const MyVector<T, Alloc>& lhs, const MyVector<T, Alloc>& rhs) {
+    return !(lhs == rhs);
+}
+
+template<class T, class Alloc>
+bool operator<(const MyVector<T, Alloc>& lhs, const MyVector<T, Alloc>& rhs) {
+    size_t min_size = std::min(lhs.size(), rhs.size());
+    for (size_t i = 0; i < min_size; ++i) {
+        if (lhs[i] < rhs[i]) {
+            return true;
+        }
+
+        if (lhs[i] > rhs[i]) {
+            return false;
+        }
+    }
+
+    return lhs.size() < rhs.size();
+}
+
+template<class T, class Alloc>
+bool operator<=(const MyVector<T, Alloc>& lhs, const MyVector<T, Alloc>& rhs) {
+    return !(rhs < lhs);
+}
+
+template<class T, class Alloc>
+bool operator>(const MyVector<T, Alloc>& lhs, const MyVector<T, Alloc>& rhs) {
+    return rhs < lhs;
+}
+
+template<class T, class Alloc>
+bool operator>=(const MyVector<T, Alloc>& lhs, const MyVector<T, Alloc>& rhs) {
+    return !(lhs < rhs);
+}
