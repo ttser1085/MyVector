@@ -358,6 +358,43 @@ public:
         return data_ + start_index;
     }
 
+    void resize(size_t new_size) {
+        if (new_size > size_) {
+            if (new_size > capacity_) {
+                reserve(new_size);
+            }
+
+            for (size_t i = size_; i < new_size; ++i) {
+                allocator_.construct(data_ + i);
+            }
+
+        } else if (new_size < size_) {
+            for (size_t i = new_size; i < size_; ++i) {
+                allocator_.destroy(data_ + i);
+            }
+        }
+
+        size_ = new_size;
+    }
+
+    void resize(size_t new_size, const T& value) {
+        if (new_size > size_) {
+            if (new_size > capacity_) {
+                reserve(new_size);
+            }
+
+            for (size_t i = size_; i < new_size; ++i) {
+                allocator_.construct(data_ + i, value);
+            }
+
+        } else if (new_size < size_) {
+            for (size_t i = new_size; i < size_; ++i) {
+                allocator_.destroy(data_ + i);
+            }
+        }
+        
+        size_ = new_size;
+    }
     
     // ------
 
