@@ -293,6 +293,71 @@ public:
             std::swap(allocator_, other.allocator_);
         } // else ub :)
     }
+
+    iterator insert(const_iterator pos, const T& value) {
+        auto index = pos - cbegin();
+        if (size_ == capacity_) {
+            reserve(capacity_ != 0 ? capacity_ * 2 : 1);
+        }
+
+        std::uninitialized_move(data_ + index, data_ + size_, data_ + index + 1);
+        allocator_.construct(data_ + index, value);
+        ++size_;
+
+        return begin() + index;
+    }
+
+    iterator insert(const_iterator pos, T&& value) {
+        auto index = pos - cbegin();
+        if (size_ == capacity_) {
+            reserve(capacity_ != 0 ? capacity_ * 2 : 1);
+        }
+
+        std::uninitialized_move(data_ + index, data_ + size_, data_ + index + 1);
+        allocator_.construct(data_ + index, std::move(value));
+        ++size_;
+
+        return begin() + index;
+    }
+
+    template <typename... Args>
+    iterator emplace(const_iterator pos, Args&&... args) {
+        auto index = pos - cbegin();
+        if (size_ == capacity_) {
+            reserve(capacity_ != 0 ? capacity_ * 2 : 1);
+        }
+
+        std::uninitialized_move(data_ + index, data_ + size_, data_ + index + 1);
+        allocator_.construct(data_ + index, std::forward<Args>(args)...);
+        ++size_;
+
+        return begin() + index;
+    }
+
+    iterator erase(const_iterator pos) {
+        size_t index = pos - data_;
+        allocator_.destroy(data_ + index);
+
+        std::uninitialized_move(data_ + index + 1, data_ + size_, data_ + index);
+        --size_;
+
+        return begin() + index;
+    }
+
+    iterator erase(const_iterator first, const_iterator last) {
+        auto start_index = std::distance(begin(), first);
+        auto end_index = std::distance(begin(), last);
+
+        for (auto i = start_index; i < end_index; ++i) {
+            allocator_.destroy(data_ + i);
+        }
+
+        std::uninitialized_move(data_ + end_index, data_ + size_, data_ + start_index);
+        size_ -= std::distance(first, last);
+
+        return data_ + start_index;
+    }
+
     
     // ------
 
