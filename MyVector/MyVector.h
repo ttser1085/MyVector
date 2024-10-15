@@ -95,39 +95,6 @@ public:
         }
     }
 
-    // ------
-
-    void push_back(const T& value) {
-        if (size_ == capacity_) {
-            reserve(capacity_ != 0 ? capacity_ * 2 : 1);
-        }
-
-        allocator_.construct(data_ + size_, value);
-        ++size_;
-    }
-
-    void push_back(T&& value) {
-        if (size_ == capacity_) {
-            reserve(capacity_ != 0 ? capacity_ * 2 : 1);
-        }
-
-        allocator_.construct(data_ + size_, std::move(value));
-        ++size_;
-    }
-
-    void swap(MyVector& other) 
-        noexcept(std::allocator_traits<Allocator>::propagate_on_container_swap::value
-        || std::allocator_traits<Allocator>::is_always_equal::value) {
-
-        std::swap(size_, other.size_);
-        std::swap(capacity_, other.capacity_);
-        std::swap(data_, other.data_);
-
-        if (std::allocator_traits<Allocator>::propagate_on_container_swap::value) {
-            std::swap(allocator_, other.allocator_);
-        } // else ub :)
-    }
-
     // Assign operators:
 
     MyVector& operator=(const MyVector& other) {
@@ -147,23 +114,15 @@ public:
 
             } else {
                 if (other.size_ > capacity_) {
-                    T* new_data = allocator_.allocate(other.size_);
+                    reserve_empty(other.size_);
+                }
 
-                    for (size_t i = 0; i < size_; ++i) {
-                        allocator_.destroy(&data_[i]);
+                for (size_t i = 0; i < other.size_; ++i) {
+                    if (i < size_) {
+                        data_[i] = other.data_[i];
+                    } else {
+                        allocator_.construct(data_ + i, other.data_[i]);
                     }
-                    allocator_.deallocate(data_, capacity_);
-
-                    data_ = new_data;
-                    capacity_ = other.size_;
-                }
-
-                for (size_t i = 0; i < size_; ++i) {
-                    data_[i] = other.data_[i];
-                }
-
-                for (size_t i = size_; i < other.size_; ++i) {
-                    allocator_.construct(data_ + i, other.data_[i]);
                 }
 
                 for (size_t i = other.size_; i < size_; ++i) {
@@ -196,23 +155,15 @@ public:
         } else {
             if (allocator_ != other.allocator_) {
                 if (other.size_ > capacity_) {
-                    T* new_data = allocator_.allocate(other.capacity_);
+                    reserve_empty(other.capacity_);
+                }
 
-                    for (size_t i = 0; i < size_; ++i) {
-                        allocator_.destroy(&data_[i]);
+                for (size_t i = 0; i < other.size_; ++i) {
+                    if (i < size_) {
+                        data_[i] = std::move(other.data_[i]);
+                    } else {
+                        allocator_.construct(data_ + i, std::move(other.data_[i]));
                     }
-                    allocator_.deallocate(data_, capacity_);
-
-                    data_ = new_data;
-                    capacity_ = other.capacity_;
-                }
-
-                for (size_t i = 0; i < size_; ++i) {
-                    data_[i] = std::move(other.data_[i]);
-                }
-
-                for (size_t i = size_; i < other.size_; ++i) {
-                    allocator_.construct(data_ + i, std::move(other.data_[i]));
                 }
 
                 for (size_t i = other.size_; i < size_; ++i) {
@@ -237,15 +188,7 @@ public:
 
     MyVector& operator=(std::initializer_list<T> ilist) {
         if (ilist.size() > capacity_) {
-            T* new_data = allocator_.allocate(ilist.size());
-
-            for (size_t i = 0; i < size_; ++i) {
-                allocator_.destroy(&data_[i]);
-            }
-            allocator_.deallocate(data_, capacity_);
-
-            data_ = new_data;
-            capacity_ = ilist.size();
+            reserve_empty(ilist.size());
         }
 
         size_t i = 0;
@@ -266,14 +209,89 @@ public:
         return *this;
     }
 
-    // ------
+    void assign(size_t count, const T& value) {
+        if (count > capacity_) {
+            reserve_empty(count);
+        }
 
-    ~MyVector() {
-        for (size_t i = 0; i < size_; ++i) {
+        for (size_t i = 0; i < count; ++i) {
+            if (i < size_) {
+                data_[i] = value;
+            } else {
+                allocator_.construct(data_ + i, value);
+            }
+        }
+
+        for (size_t i = count; i < size_; ++i) {
             allocator_.destroy(&data_[i]);
         }
 
-        allocator_.deallocate(data_, capacity_);
+        size_ = count;
+    }
+
+
+    // Destructor:
+
+    ~MyVector() {
+        reserve_empty(0);
+    }
+
+    // ------
+
+    void push_back(const T& value) {
+        if (size_ == capacity_) {
+            reserve(capacity_ != 0 ? capacity_ * 2 : 1);
+        }
+
+        allocator_.construct(data_ + size_, value);
+        ++size_;
+    }
+
+    void push_back(T&& value) {
+        if (size_ == capacity_) {
+            reserve(capacity_ != 0 ? capacity_ * 2 : 1);
+        }
+
+        allocator_.construct(data_ + size_, std::move(value));
+        ++size_;
+    }
+
+    template <typename... Args>
+    void emplace_back(Args&&... args) {
+        if (size_ == capacity_) {
+            reserve(capacity_ != 0 ? capacity_ * 2 : 1);
+        }
+
+        allocator_.construct(data_ + size_, std::forward<Args>(args)...);
+        ++size_;
+    }
+
+    void pop_back() {
+        if (size_ > 0) {
+            allocator_.destroy(data_ + size_ - 1);
+            --size_;
+        } // else ub :)
+    }
+
+    void clear() noexcept {
+        for (size_t i = 0; i < size_; ++i) {
+            allocator_.destroy(data_ + i);
+        }
+
+        size_ = 0;
+    }
+
+    void swap(MyVector& other) 
+        noexcept(std::allocator_traits<Allocator>::propagate_on_container_swap::value
+        || std::allocator_traits<Allocator>::is_always_equal::value) {
+
+        std::swap(size_, other.size_);
+        std::swap(capacity_, other.capacity_);
+        std::swap(data_, other.data_);
+
+        if (std::allocator_traits<Allocator>::propagate_on_container_swap::value) {
+            std::swap(allocator_, other.allocator_);
+        } // else ub :)
     }
     
     // ------
@@ -288,6 +306,10 @@ public:
 
     size_t capacity() const {
         return capacity_;
+    }
+
+    Allocator get_allocator() const {
+        return allocator_;
     }
 
     void reserve(size_t new_capacity) {
@@ -305,9 +327,104 @@ public:
         }
     }
 
+    void shrink_to_fit() {
+        if (size_ < capacity_) {
+            allocator_.deallocate(data_ + size_, capacity_ - size_);
+            capacity_ = size_;
+        }
+    }
+
+    // ------
+
+    iterator begin() noexcept {
+        return iterator(data_);
+    }
+
+    const_iterator cbegin() noexcept {
+        return const_iterator(data_);
+    }
+
+    iterator end() noexcept {
+        if (data_ == nullptr) {
+            return iterator(nullptr);
+        }
+
+        return iterator(data_ + size_);
+    }
+
+    const_iterator cend() noexcept {
+        if (data_ == nullptr) {
+            return const_iterator(nullptr);
+        }
+
+        return const_iterator(data_ + size_);
+    }
+
+    // ------
+
+    T& operator[](size_t index) noexcept {
+        return data_[index];
+    }
+
+    const T& operator[](size_t index) const noexcept {
+        return data_[index];
+    }
+
+    T& at(size_t index) {
+        if (index >= size_) {
+            throw std::out_of_range("Out of range");
+        }
+
+        return data_[index];
+    }
+
+    const T& at(size_t index) const {
+        if (index >= size_) {
+            throw std::out_of_range("Out of range");
+        }
+
+        return data_[index];
+    }
+
+    T& front() noexcept {
+        return data_[0];
+    }
+
+    const T& front() const noexcept {
+        return data_[0];
+    }
+
+    T& back() noexcept {
+        return data_[size_ - 1];
+    }
+
+    const T& back() const noexcept {
+        return data_[size_ - 1];
+    }
+
+    T* data() noexcept {
+        return data_;
+    }
+
+    const T* data() const noexcept {
+        return data_;
+    }
+
 private:
     T* data_;
     size_t size_;
     size_t capacity_;
     Allocator allocator_;
+
+    void reserve_empty(size_t new_capacity) {
+        T* new_data = new_capacity != 0 ? allocator_.allocate(new_capacity) : nullptr;
+
+        for (size_t i = 0; i < size_; ++i) {
+            allocator_.destroy(&data_[i]);
+        }
+        allocator_.deallocate(data_, capacity_);
+
+        data_ = new_data;
+        capacity_ = new_capacity;
+    }
 };
